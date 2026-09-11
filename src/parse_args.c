@@ -46,41 +46,36 @@ ssize_t	parse_args(size_t argc, char **argv, opts_t *opts)
 			if (opts[c].parse(argv[i], opts[c].dest))
 				return -1;
 			is_arg = false;
-			continue;
 		}
-		if (cur[0] != '-' || (cur[0] == '-' && cur[1] == '\0'))
-		{
+		else if (cur[0] != '-' || (cur[0] == '-' && cur[1] == '\0'))
 			argv[write_idx++] = argv[i];
-			continue;
-		}
-		if (cur[1] == '-' && cur[2] == '\0')
+		else if (cur[1] == '-' && cur[2] == '\0')
 		{
 			memcpy(argv + write_idx, argv + i + 1, (argc - i) * sizeof(char *));
 			write_idx += (argc - i) - 1; 
 			break;
 		}
-		for (size_t j = 1; j < strlen(cur); ++j)
+		else
 		{
-			c = cur[j];
-			if (opts[c].accepted)
+			for (size_t j = 1; j < strlen(cur); ++j)
 			{
-				opts[c].pos = ++opt_idx;
-				if (opts[c].parse != NULL)
+				c = cur[j];
+				if (!opts[c].accepted)
 				{
-					if (cur[j + 1] != '\0')
-					{
-						if (opts[c].parse(argv[i] + j + 1, opts[c].dest))
-							return -1;
-						break;
-					}
-					else
-						is_arg = true;
+					dprintf(2, "%s: invalid option -- '%c'\n", PROG_NAME, c);
+					return -1;
 				}
-			}
-			else
-			{
-				dprintf(2, "%s: invalid option -- '%c'\n", PROG_NAME, c);
-				return -1;
+				opts[c].pos = ++opt_idx;
+				if (opts[c].parse == NULL)
+					continue;
+				if (cur[j + 1] != '\0')
+				{
+					if (opts[c].parse(argv[i] + j + 1, opts[c].dest))
+						return -1;
+					break;
+				}
+				else
+					is_arg = true;
 			}
 		}
 	}

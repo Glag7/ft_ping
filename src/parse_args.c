@@ -44,10 +44,7 @@ ssize_t	parse_args(size_t argc, char **argv, opts_t *opts)
 		if (is_arg)
 		{
 			if (opts[c].parse(argv[i], opts[c].dest))
-			{
-				dprintf(2, "crashout\n");
 				return -1;
-			}
 			is_arg = false;
 			continue;
 		}
@@ -73,10 +70,8 @@ ssize_t	parse_args(size_t argc, char **argv, opts_t *opts)
 					if (cur[j + 1] != '\0')
 					{
 						if (opts[c].parse(argv[i] + j + 1, opts[c].dest))
-						{
-							dprintf(2, "crashout\n");
 							return -1;
-						}
+						break;
 					}
 					else
 						is_arg = true;

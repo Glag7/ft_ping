@@ -65,7 +65,7 @@ ssize_t	parse_args(size_t argc, char **argv, opts_t *opts)
 					dprintf(2, "%s: invalid option -- '%c'\n", PROG_NAME, c);
 					return -1;
 				}
-				opts[c].pos = ++opt_idx;
+				opts[c].pos = opt_idx++;
 				if (opts[c].parse == NULL)
 					continue;
 				if (cur[j + 1] != '\0')

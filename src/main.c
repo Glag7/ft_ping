@@ -51,19 +51,6 @@ int	main(int argc, char **argv)
 	setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &ret, 4);
 	//todo sigaction
 	ret = do_ping(argv, &specs, sock);
-
-	printf("%zd args\n", n);
-	for (ssize_t i = 0; i < n; ++i)
-	{
-		printf("'%s'\n", argv[i]);
-	}
-	printf("opts\n");
-	printf("verbose: %d\n", specs.verbose);
-	printf("count: %zu\n", specs.count);
-	printf("interval: %zu\n", specs.interval);
-	printf("timeout: %zu\n", specs.timeout);
-	printf("linger: %zu\n", specs.linger);
-
 	close(sock);
 	return ret;
 }

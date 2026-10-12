@@ -5,13 +5,16 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+#include <signal.h>
 #include "parse_args.h"
 #include "parsing_funcs.h"
 #include "specs.h"
 #include "const.h"
 #include "ping.h"
 
-ssize_t	get_specs(int argc, char **argv, opts_t *opts, specs_t *specs)
+volatile sig_atomic_t	g_flag = 0;
+
+static ssize_t	get_specs(int argc, char **argv, opts_t *opts, specs_t *specs)
 {
 	ssize_t n = 0;
 	
@@ -32,6 +35,21 @@ ssize_t	get_specs(int argc, char **argv, opts_t *opts, specs_t *specs)
 	return n;
 }
 
+void	set_flag(int sig)
+{
+	(void)sig;
+	g_flag = sig;
+}
+
+static int	set_sigaction()
+{
+	struct sigaction	sig;
+
+	memset(&sig, 0, sizeof(sig));
+	sig.sa_handler = set_flag;
+	return sigaction(SIGINT, &sig, NULL);
+}
+
 int	main(int argc, char **argv)
 {
 	specs_t	specs;
@@ -40,6 +58,7 @@ int	main(int argc, char **argv)
 	int 	sock;
 	int		ret = 1;
 	
+	g_flag = 0;
 	if (n == -1)
 		return 1;
 	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
@@ -49,7 +68,12 @@ int	main(int argc, char **argv)
 		return 2;
 	}
 	setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &ret, 4);
-	//todo sigaction
+	if (set_sigaction())
+	{
+		dprintf(2, "%s: cannot set signal handler: %s\n", PROG_NAME, strerror(errno));
+		close(sock);
+		return 2;
+	}
 	ret = do_ping(argv, &specs, sock);
 	close(sock);
 	return ret;

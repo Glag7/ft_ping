@@ -5,12 +5,16 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <arpa/inet.h>
+#include <signal.h>
+#include <netdb.h>
 #include "const.h"
 #include "ping.h"
 
-unsigned short	checksum(void *b, size_t len)
+extern volatile sig_atomic_t	g_flag;
+
+static unsigned short	checksum(const void *b, size_t len)
 {
-    unsigned short	*buf = b;
+    const unsigned short	*buf = b;
     unsigned int	sum = 0;
 
 	while (len > 1)
@@ -22,47 +26,83 @@ unsigned short	checksum(void *b, size_t len)
         sum += *(unsigned char *)buf;
     sum = (sum >> 16) + (sum & 0xFFFF);
     sum += (sum >> 16);
-	printf("chksm %hu\n", ~sum);
     return ~sum;
+}
+
+static int	dns(const char *name, struct sockaddr *addr)
+{
+	int						err;
+	struct addrinfo			*res;
+
+	memset(addr, 0, sizeof(*addr));
+	err = getaddrinfo(name, NULL, NULL, &res);
+	if (err)
+		return 1;
+	memcpy(addr, res->ai_addr, sizeof(*addr));
+	freeaddrinfo(res);
+	return 0;
 }
 
 int	do_ping(char **argv, specs_t *specs, int sock)
 {
-	ping_t	pkt;
-	char	buf[256];
-	int		ret = 0;
+	in_addr_t		addr_ip;
+	struct sockaddr addr;;
 	
-	errno = 0;
-	memset(&pkt, 0, sizeof(pkt));
-	pkt.hdr.type = ICMP_ECHO;
-	pkt.hdr.un.echo.id = getpid(); //??
-	for (size_t i = 0; i < sizeof(pkt.msg); ++i)
-		pkt.msg[i] = '0' + i;
-	pkt.msg[sizeof(pkt.msg) - 1] = 0;
-	pkt.hdr.un.echo.sequence = 0;
-	pkt.hdr.checksum = checksum(&pkt, sizeof(pkt));
-	checksum(&pkt, sizeof(pkt));
+	while (*argv)
+	{
+		printf("%s\n", *argv);
+		addr_ip = inet_addr(*argv);
+		if (addr_ip != -1U)
+			addr = (struct sockaddr){AF_INET, {htons(0), addr_ip}};
+		else if (dns(*argv, &addr))
+		{
+			dprintf(2, "%s: unknown host\n", PROG_NAME);
+			return 1;
+		}
+		++argv;
+	}
+	return 0;
 
-
-
-	struct sockaddr addr = {AF_INET, {htons(0), inet_addr("1.1.1.1")}};
-	struct sockaddr_in r_addr;
-	unsigned					addr_len = 0;
-
-	memset(&r_addr, 0, sizeof(r_addr));
-	ret = sendto(sock, &pkt, sizeof(pkt), 0, &addr, 16);
-	printf("ret is %d, %s\n", ret, strerror(errno));
-	ret = recvfrom(sock, buf, sizeof(buf), 0, (struct sockaddr *)&r_addr, &addr_len);
-	printf("ret is %d, %s\n", ret, strerror(errno));
-	printf("'''%s'''\n", buf + sizeof(pkt.hdr));
-	printf("'''checksum %hu'''\n", ((ping_t *)&buf)->hdr.checksum);
-	((ping_t *)&buf)->hdr.checksum = 0;
-	printf("'''checksum %hu'''\n", checksum(buf, 64));
-
-//ping dans l'ordre
-//si host inconnu on arrete tout
-//si ctrl c on arrete tout
-	//f((src_hp = gethostbyname(src_name)) == NULL)
-	//ret = sendto(sock, send_buf, 64, 0, (struct sockaddr){sa_family=AF_INET, sin_port=htons(0), sin_addr=inet_addr("1.1.1.1")}, 16);
-	return 0
+//	ping_t	pkt;
+//	char	buf[256];
+//	int		ret = 0;
+//	
+//	errno = 0;
+//	memset(&pkt, 0, sizeof(pkt));
+//	pkt.hdr.type = ICMP_ECHO;
+//	pkt.hdr.un.echo.id = getpid(); //??
+//	for (size_t i = 0; i < sizeof(pkt.msg); ++i)
+//		pkt.msg[i] = '0' + i;
+//	pkt.msg[sizeof(pkt.msg) - 1] = 0;
+//	pkt.hdr.un.echo.sequence = 0;
+//	pkt.hdr.checksum = checksum(&pkt, sizeof(pkt));
+//	checksum(&pkt, sizeof(pkt));
+//
+//
+//
+//	struct sockaddr addr = {AF_INET, {htons(0), inet_addr("1.1.1.1")}};
+//	struct sockaddr_in r_addr;
+//	unsigned					addr_len = 0;
+//
+//	memset(&r_addr, 0, sizeof(r_addr));
+//	ret = sendto(sock, &pkt, sizeof(pkt), 0, &addr, 16);
+//	printf("ret is %d, %s\n", ret, strerror(errno));
+//	ret = recvfrom(sock, buf, sizeof(buf), 0, (struct sockaddr *)&r_addr, &addr_len);
+//	printf("ret is %d, %s\n", ret, strerror(errno));
+//	printf("'''%s'''\n", buf + sizeof(pkt.hdr));
+//	printf("'''checksum %hu'''\n", ((ping_t *)&buf)->hdr.checksum);
+//	((ping_t *)&buf)->hdr.checksum = 0;
+//	printf("'''checksum %hu'''\n", checksum(buf, 64));
+//	while (1)
+//	{
+//		if (g_flag)
+//			break;
+//	}
+//
+////ping dans l'ordre
+////si host inconnu on arrete tout
+////si ctrl c on arrete tout
+//	//f((src_hp = gethostbyname(src_name)) == NULL)
+//	//ret = sendto(sock, send_buf, 64, 0, (struct sockaddr){sa_family=AF_INET, sin_port=htons(0), sin_addr=inet_addr("1.1.1.1")}, 16);
+//	return 0;
 }

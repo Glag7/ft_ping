@@ -6,12 +6,12 @@
 
 typedef struct specs_s
 {
-	bool	verbose;
 	size_t	count;
 	size_t	interval;
 	size_t	timeout;
 	size_t	linger;
-
+	bool	verbose;
+	bool	quiet;
 }	specs_t;
 
 #endif 

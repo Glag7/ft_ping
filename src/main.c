@@ -61,6 +61,11 @@ int	main(int argc, char **argv)
 	g_flag = 0;
 	if (n == -1)
 		return 1;
+	if (opts['?'].pos)
+	{
+		printf("%s\n", HELP_MSG);
+		return 0;
+	}
 	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
 	if (sock == -1)
 	{

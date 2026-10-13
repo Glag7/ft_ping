@@ -66,6 +66,13 @@ int	do_ping(char **argv, specs_t *specs, int sock)
 	}
 	return 0;
 
+//for count
+//faire le ping
+//si temps depasse break
+//attendre i secondes
+//q et v
+
+
 //	ping_t	pkt;
 //	char	buf[256];
 //	int		ret = 0;

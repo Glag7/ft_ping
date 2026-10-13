@@ -29,15 +29,25 @@ static unsigned short	checksum(const void *b, size_t len)
     return ~sum;
 }
 
-static int	dns(const char *name, struct sockaddr *addr)
+static int	get_addr(struct sockaddr *addr, char *host)
 {
-	int						err;
-	struct addrinfo			*res;
-
+	in_addr_t		addr_ip;
+	struct addrinfo	*res;
+	int				err;
+	
 	memset(addr, 0, sizeof(*addr));
-	err = getaddrinfo(name, NULL, NULL, &res);
+	addr_ip = inet_addr(host);
+	if (addr_ip != -1U)
+	{
+		*addr = (struct sockaddr){AF_INET, {htons(0), addr_ip}};
+		return 0;
+	}
+	err = getaddrinfo(host, NULL, NULL, &res);
 	if (err)
+	{
+		dprintf(2, "%s: unknown host\n", PROG_NAME);
 		return 1;
+	}
 	memcpy(addr, res->ai_addr, sizeof(*addr));
 	freeaddrinfo(res);
 	return 0;
@@ -45,20 +55,13 @@ static int	dns(const char *name, struct sockaddr *addr)
 
 int	do_ping(char **argv, specs_t *specs, int sock)
 {
-	in_addr_t		addr_ip;
-	struct sockaddr addr;;
+	struct sockaddr addr;
 	
 	while (*argv)
 	{
 		printf("%s\n", *argv);
-		addr_ip = inet_addr(*argv);
-		if (addr_ip != -1U)
-			addr = (struct sockaddr){AF_INET, {htons(0), addr_ip}};
-		else if (dns(*argv, &addr))
-		{
-			dprintf(2, "%s: unknown host\n", PROG_NAME);
+		if (get_addr(&addr, *argv))
 			return 1;
-		}
 		++argv;
 	}
 	return 0;

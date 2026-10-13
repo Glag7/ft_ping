@@ -22,16 +22,16 @@ static ssize_t	get_specs(int argc, char **argv, opts_t *opts, specs_t *specs)
 	specs->count = -1ULL;
 	specs->interval = 1;
 	specs->timeout = -1ULL;
-	specs->linger = 1;
 	
-	parse_set_accepted("?vqicwW", opts);
+	parse_set_accepted("?vqicwf", opts);
 	parse_set_parsing('c', &specs->count, wr_strtol, opts);
 	parse_set_parsing('i', &specs->interval, wr_strtol, opts);
 	parse_set_parsing('w', &specs->timeout, wr_strtol_max, opts);
-	parse_set_parsing('W', &specs->linger, wr_strtol_max, opts);
 	n = parse_args(argc, argv, opts);
 	specs->verbose = opts['v'].pos;
-	specs->quiet = opts['v'].pos;
+	specs->quiet = opts['q'].pos;
+	if (opts['f'].pos)
+		specs->interval = 0;
 	return n;
 }
 
@@ -65,6 +65,16 @@ int	main(int argc, char **argv)
 	{
 		printf("%s\n", HELP_MSG);
 		return 0;
+	}
+	if (*argv == NULL)
+	{
+		dprintf(2, "%s: missing host operand\n", PROG_NAME);
+		return 1;
+	}
+	if (opts['f'].pos && opts['i'].pos)
+	{
+		dprintf(2, "%s: -f and -i incompatible options\n", PROG_NAME);
+		return 1;
 	}
 	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
 	if (sock == -1)
